@@ -1,0 +1,33 @@
+Type of problem    :  Planar strains 
+Young modulus      :  7.1600000e+10  
+Poisson ratio      :  3.3000000e-01  
+Mass density       :  2.8100000e+03  
+Gravity-X          :  0.0000000e+00  
+Gravity-Y          : -9.8100000e+00  
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 1
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 2
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 3
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 4
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 5
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 6
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 7
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 8
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 9
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 10
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 11
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 12
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 13
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 14
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 15
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 16
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 17
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 18
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 19
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 20
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 21
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 22
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 23
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 24
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 25
+Boundary condition :  Neumann-N          =  1.8200000e+02,            nan : Dent 26
+Boundary condition :  Dirichlet-XY       =  0.0000000e+00,  0.0000000e+00 : Axe central
