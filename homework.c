@@ -7,14 +7,17 @@
 //  (4) Et remplacer le solveur plein par un truc un fifrelin plus subtil  (mandatory)
 
 void femElasticityAssembleElements(femProblem *theProblem) {
+
   femFullSystem *theSystem = theProblem->system;
   femIntegration *theRule = theProblem->rule;
   femDiscrete *theSpace = theProblem->space;
   femGeo *theGeometry = theProblem->geometry;
   femNodes *theNodes = theGeometry->theNodes;
   femMesh *theMesh = theGeometry->theElements;
+
   double x[4], y[4], phi[4], dphidxsi[4], dphideta[4], dphidx[4], dphidy[4];
   int iElem, iInteg, iEdge, i, j, d, map[4], mapX[4], mapY[4];
+
   int nLocal = theMesh->nLocalNode;
   double a = theProblem->A;
   double b = theProblem->B;
@@ -45,13 +48,17 @@ void femElasticityAssembleElements(femProblem *theProblem) {
       double dxdeta = 0.0;
       double dydxsi = 0.0;
       double dydeta = 0.0;
+      double R = 0.0;
+
       for (i = 0; i < theSpace->n; i++) {
         dxdxsi += x[i] * dphidxsi[i];
         dxdeta += x[i] * dphideta[i];
         dydxsi += y[i] * dphidxsi[i];
         dydeta += y[i] * dphideta[i];
       }
+
       double jac = dxdxsi * dydeta - dxdeta * dydxsi;
+
       if (jac < 0.0)
         printf("Negative jacobian! Your mesh is oriented in reverse. The normals will be wrong\n");
       jac = fabs(jac);
@@ -60,17 +67,41 @@ void femElasticityAssembleElements(femProblem *theProblem) {
         dphidx[i] = (dphidxsi[i] * dydeta - dphideta[i] * dydxsi) / jac;
         dphidy[i] = (dphideta[i] * dxdxsi - dphidxsi[i] * dxdeta) / jac;
       }
-      for (i = 0; i < theSpace->n; i++) {
-        for (j = 0; j < theSpace->n; j++) {
-          A[mapX[i]][mapX[j]] += (dphidx[i] * a * dphidx[j] + dphidy[i] * c * dphidy[j]) * jac * weight;
-          A[mapX[i]][mapY[j]] += (dphidx[i] * b * dphidy[j] + dphidy[i] * c * dphidx[j]) * jac * weight;
-          A[mapY[i]][mapX[j]] += (dphidy[i] * b * dphidx[j] + dphidx[i] * c * dphidy[j]) * jac * weight;
-          A[mapY[i]][mapY[j]] += (dphidy[i] * a * dphidy[j] + dphidx[i] * c * dphidx[j]) * jac * weight;
+
+      // Ajout de l'axisymetrie
+      if (theProblem->planarStrainStress == AXISYM) {
+        for (i = 0; i < theSpace->n; i++) {
+          for (j = 0; j < theSpace->n; j++) {
+              A[mapX[i]][mapX[j]] += (dphidx[i] * a * dphidx[j] * R +
+                                      dphidy[i] * c * dphidy[j] * R +
+                                      phi[i] * (b * dphidx[j] + a * phi[j] / R) +
+                                      dphidx[i] * b * phi[j]) * jac * weight;
+              A[mapX[i]][mapY[j]] += (dphidx[i] * b * dphidy[j] * R +
+                                      dphidy[i] * c * dphidx[j] * R +
+                                      phi[i] * b * dphidy[j]) * jac * weight;
+              A[mapY[i]][mapX[j]] += (dphidy[i] * b * dphidx[j] * R +
+                                      dphidx[i] * c * dphidy[j] * R +
+                                      phi[j] * b * dphidy[i]) * jac * weight;
+              A[mapY[i]][mapY[j]] += (dphidy[i] * a * dphidy[j] * R +
+                                      dphidx[i] * c * dphidx[j] * R) * jac * weight;
+          }
         }
-      }
-      for (i = 0; i < theSpace->n; i++) {
-        B[mapX[i]] += phi[i] * gx * rho * jac * weight;
-        B[mapY[i]] += phi[i] * gy * rho * jac * weight;
+        for (i = 0; i < theSpace->n; i++) {
+            B[mapY[i]] -= phi[i] * gy * rho * jac * weight * R;
+        }
+      } else {
+        for (i = 0; i < theSpace->n; i++) {
+          for (j = 0; j < theSpace->n; j++) {
+            A[mapX[i]][mapX[j]] += (dphidx[i] * a * dphidx[j] + dphidy[i] * c * dphidy[j]) * jac * weight;
+            A[mapX[i]][mapY[j]] += (dphidx[i] * b * dphidy[j] + dphidy[i] * c * dphidx[j]) * jac * weight;
+            A[mapY[i]][mapX[j]] += (dphidy[i] * b * dphidx[j] + dphidx[i] * c * dphidy[j]) * jac * weight;
+            A[mapY[i]][mapY[j]] += (dphidy[i] * a * dphidy[j] + dphidx[i] * c * dphidx[j]) * jac * weight;
+          }
+        }
+        for (i = 0; i < theSpace->n; i++) {
+          B[mapX[i]] += phi[i] * gx * rho * jac * weight;
+          B[mapY[i]] += phi[i] * gy * rho * jac * weight;
+        }
       }
     }
   }
