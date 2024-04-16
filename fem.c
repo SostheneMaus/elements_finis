@@ -88,10 +88,6 @@ void geoMeshPrint(void) {
   }
 }
 
-/*
-Fonction qui permet de lire un fichier de maillage (data/mesh.txt dans notre cas) 
-et de le stocker dans la structure theGeometry.
-*/
 void geoMeshWrite(const char *filename) {
   FILE *file = fopen(filename, "w");
   if (!file) {
