@@ -19,6 +19,7 @@ void femElasticityAssembleElements(femProblem *theProblem) {
   int iElem, iInteg, iEdge, i, j, d, map[4], mapX[4], mapY[4];
 
   int nLocal = theMesh->nLocalNode;
+
   double a = theProblem->A;
   double b = theProblem->B;
   double c = theProblem->C;
@@ -51,14 +52,13 @@ void femElasticityAssembleElements(femProblem *theProblem) {
       double R = 0.0;
 
       for (i = 0; i < theSpace->n; i++) {
+        R += x[i] * phi[i];
         dxdxsi += x[i] * dphidxsi[i];
         dxdeta += x[i] * dphideta[i];
         dydxsi += y[i] * dphidxsi[i];
         dydeta += y[i] * dphideta[i];
       }
-
       double jac = dxdxsi * dydeta - dxdeta * dydxsi;
-
       if (jac < 0.0)
         printf("Negative jacobian! Your mesh is oriented in reverse. The normals will be wrong\n");
       jac = fabs(jac);
@@ -72,18 +72,10 @@ void femElasticityAssembleElements(femProblem *theProblem) {
       if (theProblem->planarStrainStress == AXISYM) {
         for (i = 0; i < theSpace->n; i++) {
           for (j = 0; j < theSpace->n; j++) {
-              A[mapX[i]][mapX[j]] += (dphidx[i] * a * dphidx[j] * R +
-                                      dphidy[i] * c * dphidy[j] * R +
-                                      phi[i] * (b * dphidx[j] + a * phi[j] / R) +
-                                      dphidx[i] * b * phi[j]) * jac * weight;
-              A[mapX[i]][mapY[j]] += (dphidx[i] * b * dphidy[j] * R +
-                                      dphidy[i] * c * dphidx[j] * R +
-                                      phi[i] * b * dphidy[j]) * jac * weight;
-              A[mapY[i]][mapX[j]] += (dphidy[i] * b * dphidx[j] * R +
-                                      dphidx[i] * c * dphidy[j] * R +
-                                      phi[j] * b * dphidy[i]) * jac * weight;
-              A[mapY[i]][mapY[j]] += (dphidy[i] * a * dphidy[j] * R +
-                                      dphidx[i] * c * dphidx[j] * R) * jac * weight;
+              A[mapX[i]][mapX[j]] += (dphidx[i] * a * dphidx[j] * R + dphidy[i] * c * dphidy[j] * R + phi[i] * (b * dphidx[j] + a * phi[j] / R) + dphidx[i] * b * phi[j]) * jac * weight;
+              A[mapX[i]][mapY[j]] += (dphidx[i] * b * dphidy[j] * R + dphidy[i] * c * dphidx[j] * R + phi[i] * b * dphidy[j]) * jac * weight;
+              A[mapY[i]][mapX[j]] += (dphidy[i] * b * dphidx[j] * R + dphidx[i] * c * dphidy[j] * R + phi[j] * b * dphidy[i]) * jac * weight;
+              A[mapY[i]][mapY[j]] += (dphidy[i] * a * dphidy[j] * R + dphidx[i] * c * dphidx[j] * R) * jac * weight;
           }
         }
         for (i = 0; i < theSpace->n; i++) {
@@ -149,13 +141,23 @@ void femElasticityAssembleNeumann(femProblem *theProblem) {
       if (type == NEUMANN_Y) {
         f_y = value;
       }
-
-      //
-      // A completer :-)
+      // A completer :-) DONE !
       // Attention, pour le normal tangent on calcule la normale (sortante) au SEGMENT, surtout PAS celle de constrainedNodes
       // Une petite aide pour le calcul de la normale :-)
       // double nx =  ty / length;
       // double ny = -tx / length;
+      if (type == NEUMANN_N) {
+        double nx =  ty / length;
+        double ny = -tx / length;
+        f_x = value * nx;
+        f_y = value * ny;
+      }
+      if (type == NEUMANN_T) {
+        double nx =  ty / length;
+        double ny = -tx / length;
+        f_x = value * ny;
+        f_y = -value * nx;
+      }
 
       for (iInteg = 0; iInteg < theRule->n; iInteg++) {
         double xsi = theRule->xsi[iInteg];
@@ -218,12 +220,121 @@ void femElasticityApplyDirichlet(femProblem *theProblem) {
   }
 }
 
+// Calculer la taille de la bande de la matrice
+int femMeshComputeBand(femMesh *theMesh)
+{
+    int iElem,j,myMax,myMin,myBand,map[4];
+    int nLocal = theMesh->nLocalNode;
+    femNodes *theNodes = theMesh->nodes;
+    int *number = theNodes->number;
+
+    myBand = 0;
+    for(iElem = 0; iElem < theMesh->nElem; iElem++) {
+        for (j=0; j < nLocal; ++j) 
+            map[j] = number[theMesh->elem[iElem*nLocal+j]];
+            myMin = map[0];
+            myMax = map[0];
+        for (j=1; j < nLocal; j++) {
+            myMax = fmax(map[j],myMax);
+            myMin = fmin(map[j],myMin); }
+        if (myBand < (myMax - myMin)) myBand = myMax - myMin; 
+    }         
+    return(++myBand);
+}
+
+
+
+/*
+int femMeshComputeBand(femGeo* theGeometry)
+{
+    femMesh* theMesh = theGeometry->theElements;
+    int iElem, j, myMax, myMin, myBand, map[4];
+    int nLocal = theMesh->nLocalNode;
+    myBand = 0;
+    for (iElem = 0; iElem < theMesh->nElem; iElem++) {
+        /*for (j=0; j < nLocal; ++j) 
+            map[j] = theMesh->number[theMesh->elem[iElem*nLocal+j]];
+        myMin = map[0];
+        myMax = map[0];
+        myMax = theMesh->elem[nLocal * iElem];
+        myMin = theMesh->elem[nLocal * iElem];
+        for (j = 1; j < nLocal; j++) {
+            myMax = fmax(myMax, theMesh->elem[nLocal * iElem + j]);
+            myMin = fmin(myMin, theMesh->elem[nLocal * iElem + j]);
+        }
+        if (myBand < (myMax - myMin)) {
+            myBand = myMax - myMin;
+        }
+    }
+    return (myBand + 1) * 2;
+}
+*/
+
+void femBandSystemAssemble(femFullSystem* myBandSystem, double *Aloc, double *Bloc, int *map, int nLoc)
+{
+    int i,j;
+    for (i = 0; i < nLoc; i++) { 
+        int myRow = map[i];
+        for(j = 0; j < nLoc; j++) {
+            int myCol = map[j];
+            if (myCol >= myRow)  myBandSystem->A[myRow][myCol] += Aloc[i*nLoc+j]; }
+        myBandSystem->B[myRow] += Bloc[i]; }
+}
+
+double  *femBandSystemEliminate(femFullSystem *myBand)
+{
+    double  **A, *B, factor;
+    int     i, j, k, jend, size, band;
+    A    = myBand->A;
+    B    = myBand->B;
+    size = myBand->size;
+    band = myBand->band;
+
+
+    // Ajout de 1 sur la diagonale si la diagonale est nulle 
+    for (k = 0; k < size/2; k++) {
+        if ((A[2*k][2*k] == 0) && (A[2*k+1][2*k+1] == 0)) {
+            A[2*k][2*k] = 1;
+            A[2*k+1][2*k+1] = 1;
+        }   
+    }
+    
+
+    // Incomplete Cholesky factorization
+
+    for (k=0; k < size; k++) {
+        if ( fabs(A[k][k]) <= 1e-4 ) {
+            Error("Cannot eleminate with such a pivot"); }
+        jend = fmin(k + band,size);
+        for (i = k+1 ; i <  jend; i++) {
+            factor = A[k][i] / A[k][k];
+            for (j = i ; j < jend; j++) 
+                A[i][j] = A[i][j] - A[k][j] * factor;
+            B[i] = B[i] - B[k] * factor; }}
+        
+    // Back-substitution
+
+    for (i = (size-1); i >= 0 ; i--) {
+        factor = 0;
+        jend = fmin(i + band,size);
+        for (j = i+1 ; j < jend; j++)
+            factor += A[i][j] * B[j];
+        B[i] = ( B[i] - factor)/A[i][i]; }
+
+    return(myBand->B);
+}
+
+
+
+
 double *femElasticitySolve(femProblem *theProblem) {
   femElasticityAssembleElements(theProblem);
+  
   femElasticityAssembleNeumann(theProblem);
   femElasticityApplyDirichlet(theProblem);
 
-  double *soluce = femFullSystemEliminate(theProblem->system);
+  double *soluce = femBandSystemEliminate(theProblem->system);
+  // double *soluce = femFullSystemEliminate(theProblem->system);
   memcpy(theProblem->soluce, soluce, theProblem->system->size * sizeof(double));
   return theProblem->soluce;
 }
