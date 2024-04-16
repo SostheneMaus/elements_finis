@@ -31,6 +31,7 @@ typedef struct {
   int nNodes;
   double *X;
   double *Y;
+  int *number;
 } femNodes;
 
 typedef struct {
@@ -81,7 +82,10 @@ typedef struct {
   double *B;
   double **A;
   int size;
+  int band;
 } femFullSystem;
+
+
 
 typedef struct {
   femDomain *domain;
